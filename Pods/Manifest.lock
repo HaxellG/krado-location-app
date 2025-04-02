@@ -1,0 +1,21 @@
+PODS:
+  - AWSCore (2.40.1)
+  - AWSIoT (2.40.1):
+    - AWSCore (= 2.40.1)
+
+DEPENDENCIES:
+  - AWSCore (~> 2.40.1)
+  - AWSIoT (~> 2.40.1)
+
+SPEC REPOS:
+  trunk:
+    - AWSCore
+    - AWSIoT
+
+SPEC CHECKSUMS:
+  AWSCore: 29c85b2be07489b459cc17060b6354e9ba0f96a0
+  AWSIoT: 17caf7bc0be48683386dc5b8e5ced65be8a6a3d8
+
+PODFILE CHECKSUM: ada6c8e4d36d6f4d5880adf4680ef8ebf1e38c82
+
+COCOAPODS: 1.16.2
