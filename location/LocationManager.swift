@@ -45,7 +45,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         // Publicar en AWS IoT
         IoTManager.shared.publishLocation(
             lat: location.coordinate.latitude,
-            lon: location.coordinate.longitude
+            lon: location.coordinate.longitude,
+            alt: location.altitude
         )
     }
     

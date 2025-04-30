@@ -55,13 +55,14 @@ class IoTManager {
         }
     }
     
-    func publishLocation(lat: Double, lon: Double) {
+    func publishLocation(lat: Double, lon: Double, alt: Double) {
         guard let dataManager = dataManager else { return }
         let topic = "location/gps" // Tópico
         
         let message = [
             "latitude": lat,
             "longitude": lon,
+            "altitude":  alt,
             "timestamp": Date().timeIntervalSince1970
         ] as [String: Any]
         
