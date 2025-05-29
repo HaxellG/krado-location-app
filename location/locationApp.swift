@@ -5,6 +5,7 @@ struct locationApp: App {
     init() {
         do {
             try CertificateHelper.importCertificate()
+            AWSBootstrap.configure()
         } catch {
             print("Error importando .p12: \(error)")
         }

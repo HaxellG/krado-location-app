@@ -315,10 +315,13 @@
 				INFOPLIST_FILE = "KradoWatchApp-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = KradoWatchApp;
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Requiere acceder a datos de salud.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Necesitamos acceder a tus pasos y frecuencia cardiaca.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Registraremos tus métricas de salud para la app Krado.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Requiere ubicación en segundo plano.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Necesita ubicación para mostrar datos.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = krado.location;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -331,7 +334,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.2;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -350,10 +353,13 @@
 				INFOPLIST_FILE = "KradoWatchApp-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = KradoWatchApp;
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Requiere acceder a datos de salud.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Necesitamos acceder a tus pasos y frecuencia cardiaca.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Registraremos tus métricas de salud para la app Krado.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Requiere ubicación en segundo plano.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Necesita ubicación para mostrar datos.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = krado.location;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -366,7 +372,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.2;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -504,6 +510,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = location/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Krado;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Esta aplicación necesita usar la cámara para tomar fotografías.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "";
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "";
@@ -542,6 +549,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = location/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Krado;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Esta aplicación necesita usar la cámara para tomar fotografías.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "";
 				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "";

@@ -1,21 +1,41 @@
 PODS:
+  - AWSCognitoIdentityProvider (2.40.1):
+    - AWSCognitoIdentityProviderASF (= 2.40.1)
+    - AWSCore (= 2.40.1)
+  - AWSCognitoIdentityProviderASF (2.40.1):
+    - AWSCore (= 2.40.1)
   - AWSCore (2.40.1)
+  - AWSDynamoDB (2.40.1):
+    - AWSCore (= 2.40.1)
   - AWSIoT (2.40.1):
+    - AWSCore (= 2.40.1)
+  - AWSS3 (2.40.1):
     - AWSCore (= 2.40.1)
 
 DEPENDENCIES:
+  - AWSCognitoIdentityProvider (~> 2.40.1)
   - AWSCore (~> 2.40.1)
+  - AWSDynamoDB (~> 2.40.1)
   - AWSIoT (~> 2.40.1)
+  - AWSS3 (~> 2.40.1)
 
 SPEC REPOS:
   trunk:
+    - AWSCognitoIdentityProvider
+    - AWSCognitoIdentityProviderASF
     - AWSCore
+    - AWSDynamoDB
     - AWSIoT
+    - AWSS3
 
 SPEC CHECKSUMS:
+  AWSCognitoIdentityProvider: 9fecda3032be38905d2cc48bcdc918b5cafd8de9
+  AWSCognitoIdentityProviderASF: 1a366896eb22fb1abb39ebe724c5b89761690707
   AWSCore: 29c85b2be07489b459cc17060b6354e9ba0f96a0
+  AWSDynamoDB: 282e2e1c4343f18592fac078678ca3fc66915d3b
   AWSIoT: 17caf7bc0be48683386dc5b8e5ced65be8a6a3d8
+  AWSS3: 29e7d0e5d77af1ce97c91424d7b86aa1b0bf69b6
 
-PODFILE CHECKSUM: ada6c8e4d36d6f4d5880adf4680ef8ebf1e38c82
+PODFILE CHECKSUM: 695427152f948b9acfaf1cc04e81cab39e758cd5
 
 COCOAPODS: 1.16.2

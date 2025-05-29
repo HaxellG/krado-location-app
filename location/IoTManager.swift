@@ -57,14 +57,23 @@ class IoTManager {
     
     func publishLocation(lat: Double, lon: Double, alt: Double) {
         guard let dataManager = dataManager else { return }
-        let topic = "location/gps" // Tópico
+        let topic = "location/3014344057/gps" // Tópico
         
-        let message = [
+        // Construir mensaje con bloque custom
+        var message: [String: Any] = [
             "latitude": lat,
             "longitude": lon,
-            "altitude":  alt,
+            "altitude": alt,
             "timestamp": Date().timeIntervalSince1970
-        ] as [String: Any]
+        ]
+        
+        // Inyectar datos del Watch si está conectado
+        if let custom = WatchSessionManager.shared.customData,
+           WatchSessionManager.shared.isWatchConnected {
+            message["custom"] = custom
+        } else {
+            message["custom"] = NSNull()
+        }
         
         if let jsonData = try? JSONSerialization.data(withJSONObject: message),
            let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -75,5 +84,25 @@ class IoTManager {
             )
             print("Publicado en \(topic): \(jsonString)")
         }
+    }
+    
+    /// Publica una imagen como Base64
+    func publishImage(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.7) else { return }
+        let b64 = data.base64EncodedString()
+        let payload: [String: Any] = [
+            "deviceId": "3014344057",
+            "timestamp": Date().timeIntervalSince1970,
+            "resourceData": b64
+        ]
+        guard let json = try? JSONSerialization.data(withJSONObject: payload),
+              let str  = String(data: json, encoding: .utf8) else { return }
+
+        dataManager?.publishString(
+            str,
+            onTopic: "devices/3014344057/resources",
+            qoS: .messageDeliveryAttemptedAtLeastOnce
+        )
+        print("Imagen publicada con éxito!")
     }
 }
