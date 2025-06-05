@@ -1,108 +1,91 @@
+import Foundation
 import AWSCore
 import AWSIoT
+import CoreLocation
 
-class IoTManager {
+/// Gestor único para conectarse a AWS IoT con WebSocket SigV4
+final class IoTManager {
+
     static let shared = IoTManager()
-    
-    private var dataManager: AWSIoTDataManager?
-    
-    // Endpoint de AWS IoT
-    private let iotEndPoint = "a3o7s9e6i7d5y3-ats.iot.us-east-1.amazonaws.com"
+
+    // ─────────── Ajusta estos valores solo para depuración ───────────
+    private let endpointHost = "ann6k75ioai4b-ats.iot.us-east-1.amazonaws.com"
     private let region: AWSRegionType = .USEast1
-    
+
+    private let accessKey    = "AKIAZCRUSKBBQ7DPZY5N"
+    private let secretKey    = "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"
+    private let sessionToken = ""                // pega aquí el token si es STS
+    // ──────────────────────────────────────────────────────────────────
+
+    private var dataManager: AWSIoTDataManager?
+
     private init() {
-        // 1. Crear AWSEndpoint
-        let iotEndpoint = AWSEndpoint(urlString: "https://\(iotEndPoint)")
-        
-        // 2. Configurar el AWSServiceConfiguration
-        let serviceConfig = AWSServiceConfiguration(
-            region: region,
-            endpoint: iotEndpoint,
-            credentialsProvider: nil
+        // 1. Proveedor de credenciales estáticas
+        let creds = AWSStaticCredentialsProvider(
+            accessKey: accessKey,
+            secretKey: secretKey
+            //sessionToken: sessionToken.isEmpty ? nil : sessionToken
         )
-        
+
+        // 2. Endpoint WebSocket
+        let endpoint = AWSEndpoint(
+            urlString: "wss://\(endpointHost)/mqtt"
+        )
+
+        let cfg = AWSServiceConfiguration(
+            region: region,
+            endpoint: endpoint,
+            credentialsProvider: creds
+        )!
+        AWSServiceManager.default().defaultServiceConfiguration = cfg
+
         // 3. Registrar IoTDataManager
-        AWSIoTDataManager.register(with: serviceConfig!, forKey: "MyIoTDataManager")
-        
-        // 4. Obtener la instancia
-        self.dataManager = AWSIoTDataManager(forKey: "MyIoTDataManager")
+        AWSIoTDataManager.register(with: cfg, forKey: "WebSocketDM")
+        dataManager = AWSIoTDataManager(forKey: "WebSocketDM")
     }
-    
+
+    // MARK: – Conexión
     func connect(completion: @escaping (Bool) -> Void) {
-        guard let dataManager = dataManager else {
-            completion(false)
-            return
-        }
-        
-        let certId = "kradoCertificateId"  // ID de importCertificate
-        let clientId = "cliente-\(UUID().uuidString)"
-        
-        dataManager.connect(
+        guard let dm = dataManager else { completion(false); return }
+
+        let clientId = "ios-" + UUID().uuidString
+        dm.connectUsingWebSocket(
             withClientId: clientId,
-            cleanSession: true,
-            certificateId: certId
+            cleanSession: true
         ) { status in
-            switch status {
-            case .connected:
-                print("Conectado a AWS IoT Core (MQTT/TLS).")
-                completion(true)
-            case .connectionError, .connectionRefused, .disconnected:
-                print("Error de conexión: \(status.rawValue)")
-                completion(false)
-            default:
-                print("Estado: \(status.rawValue)")
-            }
+            print("[IoT] estado \(status) (\(status.rawValue))")
+            completion(status == .connected)
         }
     }
-    
+
+    // MARK: – Publicación de ubicación
     func publishLocation(lat: Double, lon: Double, alt: Double) {
-        guard let dataManager = dataManager else { return }
-        let topic = "location/3014344057/gps" // Tópico
-        
-        // Construir mensaje con bloque custom
-        var message: [String: Any] = [
-            "latitude": lat,
+        guard let dm = dataManager else { return }
+        let topic = "devices/3014344057/gps"
+
+        var payload: [String: Any] = [
+            "latitude":  lat,
             "longitude": lon,
-            "altitude": alt,
+            "altitude":  alt,
             "timestamp": Date().timeIntervalSince1970
         ]
-        
-        // Inyectar datos del Watch si está conectado
+
+        // Datos del watch, si existen
         if let custom = WatchSessionManager.shared.customData,
            WatchSessionManager.shared.isWatchConnected {
-            message["custom"] = custom
+            payload["custom"] = custom
         } else {
-            message["custom"] = NSNull()
+            payload["custom"] = NSNull()
         }
-        
-        if let jsonData = try? JSONSerialization.data(withJSONObject: message),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            dataManager.publishString(
-                jsonString,
-                onTopic: topic,
-                qoS: .messageDeliveryAttemptedAtLeastOnce
-            )
-            print("Publicado en \(topic): \(jsonString)")
-        }
-    }
-    
-    /// Publica una imagen como Base64
-    func publishImage(_ image: UIImage) {
-        guard let data = image.jpegData(compressionQuality: 0.7) else { return }
-        let b64 = data.base64EncodedString()
-        let payload: [String: Any] = [
-            "deviceId": "3014344057",
-            "timestamp": Date().timeIntervalSince1970,
-            "resourceData": b64
-        ]
-        guard let json = try? JSONSerialization.data(withJSONObject: payload),
-              let str  = String(data: json, encoding: .utf8) else { return }
 
-        dataManager?.publishString(
-            str,
-            onTopic: "devices/3014344057/resources",
-            qoS: .messageDeliveryAttemptedAtLeastOnce
-        )
-        print("Imagen publicada con éxito!")
+        if
+            let json = try? JSONSerialization.data(withJSONObject: payload),
+            let str  = String(data: json, encoding: .utf8)
+        {
+            dm.publishString(str,
+                             onTopic: topic,
+                             qoS: .messageDeliveryAttemptedAtLeastOnce)
+            print("Publicado en \(topic): \(str)")
+        }
     }
 }

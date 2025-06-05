@@ -1,20 +1,19 @@
 import AWSCore
 import AWSS3
 import AWSDynamoDB
-import AWSCognitoIdentityProvider   // trae el credentials provider
+import AWSCognitoIdentityProvider
 
 enum AWSBootstrap {
     static func configure() {
-        // ← REEMPLAZA POR TU ID REAL
-        let identityPoolId = "us-east-1:ddddb627-f10a-419c-98de-7cbd767cb408"
+        let identityPoolId = "us-east-1:01939ee7-dd52-4145-a62c-d607af9272ee"
         let region: AWSRegionType = .USEast1
         
-        // 1) Credenciales “guest” de Cognito
+        // 1) Credenciales de Cognito
         let credentialsProvider = AWSCognitoCredentialsProvider(
             regionType: region,
             identityPoolId: identityPoolId)
         
-        // 2) Configuración base para TODOS los servicios
+        // 2) Configuración base
         let config = AWSServiceConfiguration(
             region: region,
             credentialsProvider: credentialsProvider)!

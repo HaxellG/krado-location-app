@@ -1,145 +1,140 @@
 import HealthKit
 import Combine
 
-final class HealthManager: NSObject, ObservableObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
-    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
-        let trash: Void = ()
-    }
-    
+final class HealthManager: NSObject,
+                           ObservableObject,
+                           HKWorkoutSessionDelegate,
+                           HKLiveWorkoutBuilderDelegate {
+
+    // MARK: - Publicados
+    @Published var heartRate: Double = 0
+    @Published var stepCount: Int    = 0          // pasos “desde 0” para la UI
+
+    // MARK: - Privados
     static let shared = HealthManager()
     private let healthStore = HKHealthStore()
-    
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
-    
-    @Published var heartRate: Double = 0
-    @Published var stepCount: Int = 0
+
+    /// Línea base de pasos cuando se abre la app. Nil hasta la 1.ª lectura.
+    private var baselineSteps: Int?
 
     private override init() { super.init() }
 
+    // MARK: - Autorización
     func requestAuthorization() {
         let readTypes: Set = [
             HKObjectType.quantityType(forIdentifier: .heartRate)!,
             HKObjectType.quantityType(forIdentifier: .stepCount)!,
-            HKObjectType.workoutType()                     // ← leer workouts
+            HKObjectType.workoutType()
         ]
-        let shareTypes: Set = [
-            HKObjectType.workoutType()                     // ← escribir workouts
-        ]
-        healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, error in
-            if success {
-                DispatchQueue.main.async { self.startQueries() }
-            } else {
-                print("HealthKit auth error:", error ?? "unknown")
-            }
+        healthStore.requestAuthorization(toShare: nil, read: readTypes) { ok, err in
+            if ok { DispatchQueue.main.async { self.startQueries() } }
+            else  { print("HealthKit auth error:", err ?? "unknown") }
         }
     }
 
+    // MARK: - Arranque
     private func startQueries() {
         startWorkoutSession()
-        updateStepsToday()
+        updateStepsToday()     // primera lectura: fija baseline
         startStepObserver()
     }
 
-    // MARK: - Heart Rate Live
+    // MARK: - Sesión HR en vivo
     private func startWorkoutSession() {
-        let config = HKWorkoutConfiguration()
-        config.activityType = .other
-        config.locationType = .indoor
-
+        let cfg = HKWorkoutConfiguration()
+        cfg.activityType = .other; cfg.locationType = .indoor
         do {
-            session = try HKWorkoutSession(healthStore: healthStore, configuration: config)
+            session = try HKWorkoutSession(healthStore: healthStore, configuration: cfg)
             builder = session!.associatedWorkoutBuilder()
-        } catch {
-            print("Error creando workout session: \(error)")
-            return
-        }
+        } catch { print("Error creando workout →", error); return }
 
         session!.delegate = self
         builder!.delegate = self
-
         builder!.dataSource = HKLiveWorkoutDataSource(
             healthStore: healthStore,
-            workoutConfiguration: config
-        )
+            workoutConfiguration: cfg)
 
-        let startDate = Date()
-        session!.startActivity(with: startDate)
-        builder!.beginCollection(withStart: startDate) { success, error in
-            if let e = error {
-                print("Error al comenzar colección: \(e)")
-            }
+        let t = Date()
+        session!.startActivity(with: t)
+        builder!.beginCollection(withStart: t) { _, e in
+            if let e = e { print("Begin-collection error:", e) }
         }
     }
 
-    func workoutSession(_ workoutSession: HKWorkoutSession,
-                        didChangeTo toState: HKWorkoutSessionState,
-                        from fromState: HKWorkoutSessionState,
-                        date: Date) { /* no-op */ }
-
-    func workoutSession(_ workoutSession: HKWorkoutSession,
+    func workoutSession(_ ws: HKWorkoutSession,
                         didFailWithError error: Error) {
-        print("Workout session falló: \(error)")
+        print("Workout session falló:", error)
     }
 
-    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder,
+    func workoutBuilder(_ wb: HKLiveWorkoutBuilder,
                         didCollectDataOf collectedTypes: Set<HKSampleType>) {
-        guard let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate),
-              collectedTypes.contains(hrType),
-              let stats = workoutBuilder.statistics(for: hrType),
-              let quantity = stats.mostRecentQuantity()
+        guard let qt = HKObjectType.quantityType(forIdentifier: .heartRate),
+              collectedTypes.contains(qt),
+              let stats = wb.statistics(for: qt),
+              let qty   = stats.mostRecentQuantity()
         else { return }
-        let bpm = quantity.doubleValue(for: HKUnit(from: "count/min"))
-        DispatchQueue.main.async { self.heartRate = bpm }
+
+        let bpm = qty.doubleValue(for: .count().unitDivided(by: .minute()))
         DispatchQueue.main.async {
-          self.heartRate = bpm
-          // Enviar mensaje al iPhone
-          WatchSessionManager.shared.send(metrics: [
-            "heartRate": bpm,
-            "steps": self.stepCount,
-            "timestamp": Date().timeIntervalSince1970
-          ])
+            self.heartRate = bpm
+            self.sendMetricsToPhone()
         }
     }
 
-    // MARK: - Step Count Observer
+    // MARK: - Pasos
     private func startStepObserver() {
         guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return }
-        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
-            if error == nil {
-                self?.updateStepsToday()
-            }
+        let q = HKObserverQuery(sampleType: stepType,
+                                predicate: nil) { [weak self] _, _, err in
+            if err == nil { self?.updateStepsToday() }
         }
-        healthStore.execute(query)
-        healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, error in
-            if !success {
-                print("No se habilitó delivery background steps:", error ?? "")
-            }
-        }
+        healthStore.execute(q)
+        healthStore.enableBackgroundDelivery(for: stepType,
+                                             frequency: .immediate) { _, _ in }
     }
 
     private func updateStepsToday() {
-        guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return }
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        let predicate = HKQuery.predicateForSamples(withStart: startOfDay,
-                                                    end: Date(),
-                                                    options: .strictStartDate)
+        guard let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return }
 
-        let sumQuery = HKStatisticsQuery(quantityType: type,
-                                         quantitySamplePredicate: predicate,
-                                         options: .cumulativeSum) { _, stats, _ in
-            let steps = Int(stats?.sumQuantity()?.doubleValue(for: .count()) ?? 0)
-            DispatchQueue.main.async { self.stepCount = steps }
+        let startDay = Calendar.current.startOfDay(for: Date())
+        let pred = HKQuery.predicateForSamples(withStart: startDay,
+                                               end: Date(),
+                                               options: .strictStartDate)
+
+        let q = HKStatisticsQuery(quantityType: stepType,
+                                  quantitySamplePredicate: pred,
+                                  options: .cumulativeSum) { _, stats, _ in
+            let totalSteps = Int(stats?.sumQuantity()?.doubleValue(for: .count()) ?? 0)
+
+            // Si aún no tenemos línea base, la fijamos
+            if self.baselineSteps == nil { self.baselineSteps = totalSteps }
+
+            // Pasos relativos = total - baseline, nunca negativos
+            let relative = max(0, totalSteps - (self.baselineSteps ?? 0))
+
             DispatchQueue.main.async {
-              self.stepCount = steps
-              // Envía también aquí para que iPhone reciba la actualización
-              WatchSessionManager.shared.send(metrics: [
-                "heartRate": self.heartRate,
-                "steps": steps,
-                "timestamp": Date().timeIntervalSince1970
-              ])
+                self.stepCount = relative
+                self.sendMetricsToPhone()
             }
         }
-        healthStore.execute(sumQuery)
+        healthStore.execute(q)
     }
+
+    // MARK: - Enviar al iPhone
+    private func sendMetricsToPhone() {
+        WatchSessionManager.shared.send(metrics: [
+            "heartRate": heartRate,
+            "steps": stepCount,
+            "timestamp": Date().timeIntervalSince1970
+        ])
+    }
+
+    // No-op delegate (requerido por protocolo)
+    func workoutBuilderDidCollectEvent(_ wb: HKLiveWorkoutBuilder) {}
+    func workoutSession(_ ws: HKWorkoutSession,
+                        didChangeTo toState: HKWorkoutSessionState,
+                        from fromState: HKWorkoutSessionState,
+                        date: Date) {}
 }

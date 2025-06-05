@@ -2,18 +2,18 @@ import SwiftUI
 
 @main
 struct locationApp: App {
+
     init() {
-        do {
-            try CertificateHelper.importCertificate()
-            AWSBootstrap.configure()
-        } catch {
-            print("Error importando .p12: \(error)")
+        // Configura servicios (S3/DynamoDB) vía Cognito, si los usas
+        AWSBootstrap.configure()
+
+        // Conexión a IoT mediante WebSocket SigV4
+        IoTManager.shared.connect { ok in
+            print(ok ? "✅ IoT conectado" : "❌ IoT no conectado")
         }
     }
-    
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+        WindowGroup { ContentView() }
     }
 }

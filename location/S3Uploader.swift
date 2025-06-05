@@ -6,32 +6,48 @@ import AWSDynamoDB
 
 final class S3Uploader {
     static let shared = S3Uploader()
-    private let bucket       = "krado-location-images"
+    private let bucket       = "prd-krado-location-images"
     private let regionString = "us-east-1"
 
-    private init() {}
+    private init() {}   // AWSBootstrap ya configuró Cognito, S3 y DDB
 
-    func upload(image: UIImage,
-                deviceId: String,
-                coord: CLLocationCoordinate2D,
-                completion: @escaping (Result<Void, Error>) -> Void) {
-
+    /// Sube la imagen a S3 y luego registra en DynamoDB,
+    /// incluyendo lat/lon/altitud, título, descripción y el tag.
+    func upload(
+        image: UIImage,
+        deviceId: String,
+        coord: CLLocationCoordinate2D,
+        altitude: Double,
+        title: String,
+        description: String,
+        tag: String,                     // ← nuevo parámetro
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        // 1) Convertir UIImage a JPEG
         guard let data = image.jpegData(compressionQuality: 0.85) else {
-            return completion(.failure(
-                NSError(domain: "JPEG", code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: "JPEG encode failed"])))
+            let err = NSError(
+                domain: "S3Uploader",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "JPEG conversion failed"]
+            )
+            return completion(.failure(err))
         }
 
+        // 2) Generar clave única en S3
         let ts  = Int(Date().timeIntervalSince1970)
         let key = "photos/\(deviceId)/\(ts).jpg"
 
+        // 3) Obtener la TransferUtility registrada desde AWSBootstrap
         guard let tu = AWSS3TransferUtility.s3TransferUtility(forKey: "KradoS3") else {
-            return completion(.failure(
-                NSError(domain: "S3TU", code: -2,
-                        userInfo: [NSLocalizedDescriptionKey: "TransferUtility not found"])))
+            let err = NSError(
+                domain: "S3Uploader",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "TransferUtility not found"]
+            )
+            return completion(.failure(err))
         }
 
-        // 1) Subir la imagen a S3
+        // 4) Subir a S3
         tu.uploadData(
             data,
             bucket:      bucket,
@@ -40,48 +56,71 @@ final class S3Uploader {
             expression:  nil
         ) { _, error in
             if let error = error {
-                completion(.failure(error))
-            } else {
-                // 2) Construir la URL pública del objeto en S3
-                let resourceUrl = "https://\(self.bucket).s3.\(self.regionString).amazonaws.com/\(key)"  // ← aquí
-
-                // 3) Registrar en DynamoDB, incluyendo resourceUrl
-                self.saveRecord(
-                    resourceId:     key,
-                    resourceUrl: resourceUrl,    // ← aquí
-                    deviceId:    deviceId,
-                    ts:          ts,
-                    lat:         coord.latitude,
-                    lon:         coord.longitude,
-                    completion:  completion
-                )
+                return completion(.failure(error))
             }
+
+            // 5) Construir la URL pública del objeto en S3
+            let resourceUrl =
+                "https://\(self.bucket).s3.\(self.regionString).amazonaws.com/\(key)"
+
+            // 6) Registrar en DynamoDB, pasando altitud, título, descripción y tag
+            self.saveRecord(
+                resourceId:  key,
+                resourceUrl: resourceUrl,
+                deviceId:    deviceId,
+                ts:          ts,
+                lat:         coord.latitude,
+                lon:         coord.longitude,
+                alt:         altitude,
+                title:       title,
+                description: description,
+                tag:         tag,
+                completion:  completion
+            )
         }
     }
 
-    private func saveRecord(resourceId: String,
-                            resourceUrl: String,    // ← nuevo parámetro
-                            deviceId:   String,
-                            ts:         Int,
-                            lat:        Double,
-                            lon:        Double,
-                            completion: @escaping (Result<Void, Error>) -> Void) {
-
+    private func saveRecord(
+        resourceId:  String,
+        resourceUrl: String,
+        deviceId:    String,
+        ts:          Int,
+        lat:         Double,
+        lon:         Double,
+        alt:         Double,
+        title:       String,
+        description: String,
+        tag:         String,             // ← aquí
+        completion:  @escaping (Result<Void, Error>) -> Void
+    ) {
         // Crear cada atributo y asignar su valor
-        let photoAttr   = AWSDynamoDBAttributeValue(); photoAttr?.s   = resourceId
-        let deviceAttr  = AWSDynamoDBAttributeValue(); deviceAttr?.s  = deviceId
-        let tsAttr      = AWSDynamoDBAttributeValue(); tsAttr?.n      = "\(ts)"
-        let urlAttr     = AWSDynamoDBAttributeValue(); urlAttr?.s     = resourceUrl  // ← aquí
+        let idAttr        = AWSDynamoDBAttributeValue(); idAttr?.s         = resourceId
+        let urlAttr       = AWSDynamoDBAttributeValue(); urlAttr?.s        = resourceUrl
+        let deviceAttr    = AWSDynamoDBAttributeValue(); deviceAttr?.s     = deviceId
+        let tsAttr        = AWSDynamoDBAttributeValue(); tsAttr?.n         = "\(ts)"
+        let latAttr       = AWSDynamoDBAttributeValue(); latAttr?.n        = "\(lat)"
+        let lonAttr       = AWSDynamoDBAttributeValue(); lonAttr?.n        = "\(lon)"
+        let altAttr       = AWSDynamoDBAttributeValue(); altAttr?.n        = "\(alt)"
+        let titleAttr     = AWSDynamoDBAttributeValue(); titleAttr?.s      = title
+        let descAttr      = AWSDynamoDBAttributeValue(); descAttr?.s       = description
+        let tagAttr       = AWSDynamoDBAttributeValue(); tagAttr?.s        = tag      // ← aquí
 
+        // Construir el diccionario de atributos
         let attrs: [String: AWSDynamoDBAttributeValue] = [
-            "resourceId"    : photoAttr!,
-            "deviceId"   : deviceAttr!,
-            "timestamp"  : tsAttr!,
-            "resourceUrl": urlAttr!                                // ← aquí
+            "resourceId"  : idAttr!,
+            "resourceUrl" : urlAttr!,
+            "deviceId"    : deviceAttr!,
+            "timestamp"   : tsAttr!,
+            "latitude"    : latAttr!,
+            "longitude"   : lonAttr!,
+            "altitude"    : altAttr!,
+            "title"       : titleAttr!,
+            "description" : descAttr!,
+            "tag"         : tagAttr!
         ]
 
         let put = AWSDynamoDBPutItemInput()!
-        put.tableName = "kradoResources"     // ← tu tabla
+        put.tableName = "kradoResources"
         put.item      = attrs
 
         AWSDynamoDB(forKey: "KradoDDB").putItem(put) { _, err in
