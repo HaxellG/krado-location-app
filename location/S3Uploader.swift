@@ -9,10 +9,8 @@ final class S3Uploader {
     private let bucket       = "BUCKET-NAME"
     private let regionString = "us-east-1"
 
-    private init() {}   // AWSBootstrap ya configuró Cognito, S3 y DDB
+    private init() {}
 
-    /// Sube la imagen a S3 y luego registra en DynamoDB,
-    /// incluyendo lat/lon/altitud, título, descripción y el tag.
     func upload(
         image: UIImage,
         deviceId: String,
