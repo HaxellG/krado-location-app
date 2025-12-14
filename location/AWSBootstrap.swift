@@ -20,8 +20,8 @@ enum AWSBootstrap {
         AWSServiceManager.default().defaultServiceConfiguration = config
         
         // 3) Registrar utilidades con claves
-        AWSS3TransferUtility.register(with: config, forKey: "KradoS3")
-        AWSDynamoDB.register(with: config, forKey: "KradoDDB")
+        AWSS3TransferUtility.register(with: config, forKey: "S3")
+        AWSDynamoDB.register(with: config, forKey: "DDB")
         
         print("✅ AWSBootstrap configurado con Cognito")
     }
