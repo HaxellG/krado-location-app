@@ -6,7 +6,7 @@ import AWSDynamoDB
 
 final class S3Uploader {
     static let shared = S3Uploader()
-    private let bucket       = "prd-krado-location-images"
+    private let bucket       = "BUCKET-NAME"
     private let regionString = "us-east-1"
 
     private init() {}   // AWSBootstrap ya configuró Cognito, S3 y DDB
