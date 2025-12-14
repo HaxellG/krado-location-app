@@ -3,7 +3,7 @@ import AWSCore
 import AWSIoT
 import CoreLocation
 
-/// Gestor único para conectarse a AWS IoT con WebSocket SigV4
+/// Gestor para conectarse a AWS IoT con WebSocket
 final class IoTManager {
 
     static let shared = IoTManager()
@@ -14,7 +14,6 @@ final class IoTManager {
     private let accessKey    = " "
     private let secretKey    = " "
     private let sessionToken = " " 
-    // ──────────────────────────────────────────────────────────────────
 
     private var dataManager: AWSIoTDataManager?
 
