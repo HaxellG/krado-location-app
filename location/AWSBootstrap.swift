@@ -5,7 +5,7 @@ import AWSCognitoIdentityProvider
 
 enum AWSBootstrap {
     static func configure() {
-        let identityPoolId = "us-east-1:01939ee7-dd52-4145-a62c-d607af9272ee"
+        let identityPoolId = "POOL_IDENTIFIER"
         let region: AWSRegionType = .USEast1
         
         // 1) Credenciales de Cognito
