@@ -13,8 +13,8 @@ class CertificateHelper {
         
         let success = AWSIoTManager.importIdentity(
             fromPKCS12Data: pkcs12Data,
-            passPhrase: "krado123456",
-            certificateId: "kradoCertificateId"
+            passPhrase: "PASS_PHRASE",
+            certificateId: "CERTIFICATE_ID"
         )
         
         if success {
