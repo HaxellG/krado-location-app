@@ -8,13 +8,12 @@ final class IoTManager {
 
     static let shared = IoTManager()
 
-    // ─────────── Ajusta estos valores solo para depuración ───────────
-    private let endpointHost = "ann6k75ioai4b-ats.iot.us-east-1.amazonaws.com"
+    private let endpointHost = " "
     private let region: AWSRegionType = .USEast1
 
-    private let accessKey    = "AKIAZCRUSKBBQ7DPZY5N"
-    private let secretKey    = "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"
-    private let sessionToken = ""                // pega aquí el token si es STS
+    private let accessKey    = " "
+    private let secretKey    = " "
+    private let sessionToken = " " 
     // ──────────────────────────────────────────────────────────────────
 
     private var dataManager: AWSIoTDataManager?
@@ -24,7 +23,6 @@ final class IoTManager {
         let creds = AWSStaticCredentialsProvider(
             accessKey: accessKey,
             secretKey: secretKey
-            //sessionToken: sessionToken.isEmpty ? nil : sessionToken
         )
 
         // 2. Endpoint WebSocket
